@@ -1,0 +1,49 @@
+name: check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep fd-find shellcheck python3-yaml
+          sudo ln -sf /usr/bin/fdfind /usr/local/bin/fd
+
+      - name: Shellcheck scan.sh
+        run: shellcheck -S warning .claude/skills/kb-lint/scan.sh
+
+      - name: Scan smoke test on the seed vault
+        # Skipped in instances: the Quick start renames vault/ and untracks it.
+        if: hashFiles('vault/wiki/index.md') != ''
+        run: bash .claude/skills/kb-lint/scan.sh vault 90 2026-01-01 | tee /dev/stderr | grep -F '; 0 broken)'
+
+      - name: Skill frontmatter
+        # Each SKILL.md: YAML frontmatter with name (= its folder) and description (<= 1024 chars).
+        run: |
+          python3 - <<'EOF'
+          import glob, os, re, sys, yaml
+          files = sorted(glob.glob('.claude/skills/*/SKILL.md'))
+          bad = [] if files else ['no .claude/skills/*/SKILL.md found']
+          for f in files:
+              m = re.match(r'---\n(.*?)\n---\n', open(f, encoding='utf-8').read(), re.S)
+              fm = yaml.safe_load(m.group(1)) if m else None
+              if not isinstance(fm, dict):
+                  bad.append(f + ': no YAML frontmatter mapping'); continue
+              name, desc = fm.get('name'), fm.get('description')
+              folder = os.path.basename(os.path.dirname(f))
+              if name != folder: bad.append(f'{f}: name {name!r} != folder {folder!r}')
+              if not isinstance(desc, str) or not desc.strip(): bad.append(f + ': description missing')
+              elif len(desc) > 1024: bad.append(f'{f}: description is {len(desc)} chars (max 1024)')
+          print('\n'.join(bad) or f'{len(files)} skills ok')
+          sys.exit(1 if bad else 0)
+          EOF

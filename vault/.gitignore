@@ -1,0 +1,8 @@
+**/.obsidian/workspace.json
+**/.obsidian/workspace-mobile.json
+**/.obsidian/cache/
+.DS_Store
+
+# OPTIONAL: transient inbox queue written by your inbox command. Uncomment if the KB uses raw/inbox/.
+# raw/inbox/*.md
+# !raw/inbox/README.md

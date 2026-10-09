@@ -1,0 +1,14 @@
+# The wiki vault keeps its own git repo, so this repo ignores it.
+# The next line is the vault folder name (the README Quick start sets it).
+<vault>/
+
+# Local-only Claude Code settings (per-machine permissions etc.)
+.claude/settings.local.json
+
+# OS / editor noise
+.DS_Store
+
+# secrets — never commit
+.env
+**/.env
+.mcp.json
